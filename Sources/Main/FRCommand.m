@@ -41,33 +41,37 @@
 
 - (void) setError:(NSMutableString*)pError
 {
-    error = pError;
+    if (error) [error release];
+    error = [pError retain];
 }
 
 - (void) setOutput:(NSMutableString*)pOutput
 {
-    output = pOutput;
+    if (output) [output release];
+    output = [pOutput retain];
 }
 
 
 -(void) appendDataFrom:(NSFileHandle*)fileHandle to:(NSMutableString*)string
 {
-	NSData *data = [fileHandle availableData];
+    if (!string) return;
+
+    NSData *data = [fileHandle availableData];
 
     if ([data length]) {
 
-		// Initially try to read the file in using UTF8
+        // Initially try to read the file in using UTF8
         NSString *s = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
 
-		// If that fails, attempt plain ASCII
-		if (!s) s = [[NSString alloc] initWithData:data encoding:NSASCIIStringEncoding];
+        // If that fails, attempt plain ASCII
+        if (!s) s = [[NSString alloc] initWithData:data encoding:NSASCIIStringEncoding];
 
-		if (s) {
-			[string appendString:s];
-			//NSLog(@"| %@", s);
+        if (s) {
+            [string appendString:s];
+            //NSLog(@"| %@", s);
 
-			[s release];
-		}
+            [s release];
+        }
     }
 
     [fileHandle waitForDataInBackgroundAndNotify];
@@ -156,6 +160,8 @@
 -(void)dealloc
 {
     [task release];
+    if (output) [output release];
+    if (error) [error release];
 
     [super dealloc];
 }
