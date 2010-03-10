@@ -16,6 +16,8 @@
 
 #import <Cocoa/Cocoa.h>
 
+#define FR_CONSOLELOG_TIME 0
+#define FR_CONSOLELOG_TEXT 1
 
 @interface FRConsoleLog : NSObject
 
