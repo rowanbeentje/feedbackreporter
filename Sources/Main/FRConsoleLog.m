@@ -21,6 +21,8 @@
 #import <asl.h>
 #import <unistd.h>
 
+#define FR_CONSOLELOG_TIME 0
+#define FR_CONSOLELOG_TEXT 1
 
 @implementation FRConsoleLog
 
@@ -30,9 +32,14 @@
     NSInteger rawConsoleLinesCapacity = 100;
     NSInteger consoleLinesProcessed = 0;
     NSInteger i;
+
     char ***rawConsoleLines = (char ***)malloc(rawConsoleLinesCapacity * sizeof(char **));
     NSMutableString *consoleString = [[NSMutableString alloc] init];
     NSMutableArray *consoleLines = [[NSMutableArray alloc] init];
+
+    NSDateFormatter *dateFormatter = [[[NSDateFormatter alloc] init] autorelease];
+    [dateFormatter setDateStyle:NSDateFormatterMediumStyle];
+    [dateFormatter setTimeStyle:NSDateFormatterMediumStyle];
 
     aslmsg query = asl_new(ASL_TYPE_QUERY);
 
@@ -60,13 +67,13 @@
 
             while (NULL != (msg = aslresponse_next(response))) {
 
-                const char* time = asl_get(msg, ASL_KEY_TIME);
+                const char *time = asl_get(msg, ASL_KEY_TIME);
                 
                 if (time == NULL) {
                     continue;
                 }
                 
-                const char* text = asl_get(msg, ASL_KEY_MSG);
+                const char *text = asl_get(msg, ASL_KEY_MSG);
 
                 if (text == NULL) {
                     continue;
@@ -80,11 +87,14 @@
                 }
 
                 // Add a new entry for this console line
-                char** rawLineContents = (char **)malloc(2 * sizeof(char *));
+                char **rawLineContents = (char **)malloc(2 * sizeof(char *));
+
                 rawLineContents[FR_CONSOLELOG_TIME] = (char *)malloc(strlen(time) + 1);
                 strcpy(rawLineContents[FR_CONSOLELOG_TIME], time);
+
                 rawLineContents[FR_CONSOLELOG_TEXT] = (char *)malloc(strlen(text) + 1);
                 strcpy(rawLineContents[FR_CONSOLELOG_TEXT], text);
+
                 rawConsoleLines[consoleLinesProcessed-1] = rawLineContents;
             }
 
@@ -95,7 +105,7 @@
                 for (i = consoleLinesProcessed - 1; i >= 0; i--) {
                     char **line = rawConsoleLines[i];
                     NSDate *date = [NSDate dateWithTimeIntervalSince1970:atof(line[FR_CONSOLELOG_TIME])];
-                    [consoleLines addObject:[NSString stringWithFormat:@"%@: %s\n", date, line[FR_CONSOLELOG_TEXT]]];
+                    [consoleLines addObject:[NSString stringWithFormat:@"%@: %s\n", [dateFormatter stringFromDate:date], line[FR_CONSOLELOG_TEXT]]];
 
                     // If a maximum size has been provided, respect it and abort if necessary
                     if (maxSize != nil) {

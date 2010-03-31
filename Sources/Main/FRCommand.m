@@ -24,8 +24,8 @@
     self = [super init];
     if (self != nil) {
         task = [[NSTask alloc] init];
-        args = [NSArray array];
-        path = pPath;
+        args = [[NSArray array] retain];
+        path = [pPath retain];
         error = nil;
         output = nil;
         terminated = NO;
@@ -34,28 +34,43 @@
     return self;
 }
 
+-(void)dealloc
+{
+    [task release];
+    [args release];
+    [path release];
+    [error release];
+    [output release];
+
+    [super dealloc];
+}
+
+
+
 - (void) setArgs:(NSArray*)pArgs
 {
+    [pArgs retain];
+    [args release];
     args = pArgs;
 }
 
 - (void) setError:(NSMutableString*)pError
 {
-    if (error) [error release];
-    error = [pError retain];
+    [pError retain];
+    [error release];
+    error = pError;
 }
 
 - (void) setOutput:(NSMutableString*)pOutput
 {
-    if (output) [output release];
-    output = [pOutput retain];
+    [pOutput retain];
+    [output release];
+    output = pOutput;
 }
 
 
 -(void) appendDataFrom:(NSFileHandle*)fileHandle to:(NSMutableString*)string
 {
-    if (!string) return;
-
     NSData *data = [fileHandle availableData];
 
     if ([data length]) {
@@ -64,7 +79,9 @@
         NSString *s = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
 
         // If that fails, attempt plain ASCII
-        if (!s) s = [[NSString alloc] initWithData:data encoding:NSASCIIStringEncoding];
+        if (!s) {
+            s = [[NSString alloc] initWithData:data encoding:NSASCIIStringEncoding];
+        }
 
         if (s) {
             [string appendString:s];
@@ -106,6 +123,11 @@
 
 - (int) execute
 {
+    if (![[NSFileManager defaultManager] isExecutableFileAtPath:path]) {
+        // executable not found
+        return -1;
+    }
+
     [task setLaunchPath:path];
     [task setArguments:args];
 
@@ -155,15 +177,6 @@
     int result = [task terminationStatus];
 
     return result;
-}
-
--(void)dealloc
-{
-    [task release];
-    if (output) [output release];
-    if (error) [error release];
-
-    [super dealloc];
 }
 
 @end
